@@ -125,6 +125,9 @@ ul.body li strong,ol.body li strong{color:var(--tx)}
 .ps-body{padding:1.2rem 1.4rem}
 .ps-home-btn{display:block;width:100%;text-align:left;background:var(--blushL);border:1.5px solid var(--border);border-radius:var(--r2);padding:.8rem 1rem;margin-bottom:.6rem;cursor:pointer;font-family:inherit}
 .ps-home-btn:hover{border-color:var(--rose);background:var(--roseBg)}
+.ps-home-btn.ps-home-all{background:var(--infoBg);border:1.5px solid var(--infoBorder);margin-top:.3rem}
+.ps-home-btn.ps-home-all:hover{border-color:var(--info);background:var(--infoBg)}
+.ps-home-divider{font-size:.72rem;color:var(--tx3);text-align:center;margin:.3rem 0 .6rem;line-height:1.4}
 .ps-home-btn .phb-t{font-weight:700;font-size:.9rem;color:var(--mocha)}
 .ps-home-btn .phb-s{font-size:.76rem;color:var(--tx3);margin-top:2px}
 .ps-pips{display:flex;gap:5px;flex-wrap:wrap;margin-bottom:1rem}
@@ -1359,11 +1362,14 @@ document.getElementById('psOverlay').addEventListener('click', function(e){
 function psRenderHome(){
   var cfg = PITSTOPS[psState.psKey];
   var modal = document.getElementById('psModal');
-  var html = '<div class="ps-mhdr"><div><div class="ps-mhdr-title">🏁 '+cfg.title+'</div><div class="ps-mhdr-sub">Pick a topic to test yourself on</div></div><button class="ps-close" onclick="psClose()">✕</button></div>';
+  var html = '<div class="ps-mhdr"><div><div class="ps-mhdr-title">🏁 '+cfg.title+'</div><div class="ps-mhdr-sub">Choose a section to test yourself on</div></div><button class="ps-close" onclick="psClose()">✕</button></div>';
   html += '<div class="ps-body">';
+  html += '<div class="ps-home-divider">Each set only asks about the section you pick, so you can check yourself right after reading it.</div>';
   cfg.subs.forEach(function(s){
     html += '<button class="ps-home-btn" onclick="psStartQuiz(\''+s.key+'\')"><div class="phb-t">'+s.label+'</div><div class="phb-s">'+s.qs.length+' questions</div></button>';
   });
+  var totalQ = cfg.subs.reduce(function(sum,s){ return sum + s.qs.length; }, 0);
+  html += '<button class="ps-home-btn ps-home-all" onclick="psStartQuizAll()"><div class="phb-t">All sections in this pit stop</div><div class="phb-s">'+totalQ+' questions, mixed</div></button>';
   html += '</div>';
   modal.innerHTML = html;
 }
@@ -1377,6 +1383,24 @@ function psStartQuiz(subKey){
   psState.results = new Array(sub.qs.length).fill(null);
   psState.answered = false;
   psState.subLabel = sub.label;
+  psRenderQuestion();
+}
+
+function psStartQuizAll(){
+  var cfg = PITSTOPS[psState.psKey];
+  var allQs = [];
+  cfg.subs.forEach(function(s){ s.qs.forEach(function(q){ allQs.push(q); }); });
+  // Shuffle so it's genuinely mixed, not just each section back-to-back in order
+  for(var i=allQs.length-1;i>0;i--){
+    var j = Math.floor(Math.random()*(i+1));
+    var tmp=allQs[i]; allQs[i]=allQs[j]; allQs[j]=tmp;
+  }
+  psState.subKey = '__all__';
+  psState.qs = allQs;
+  psState.idx = 0;
+  psState.results = new Array(allQs.length).fill(null);
+  psState.answered = false;
+  psState.subLabel = cfg.title;
   psRenderQuestion();
 }
 
